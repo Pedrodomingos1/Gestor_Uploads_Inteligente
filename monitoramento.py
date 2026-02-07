@@ -1,3 +1,4 @@
+import logging
 import os
 import re
 import shutil
@@ -9,11 +10,13 @@ from watchdog.observers import Observer
 
 import arquivo
 
+logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
+logger = logging.getLogger(__name__)
 
 class UploadHandler(FileSystemEventHandler):
     def on_created(self, event):
         if not event.is_directory and event.src_path.lower().endswith((".jpg", ".png", ".mp4")):
-            print(f"Novo arquivo detectado: {event.src_path}")
+            logger.info(f"Novo arquivo detectado: {event.src_path}")
             time.sleep(2)
 
             filename = os.path.basename(event.src_path)
@@ -30,28 +33,26 @@ class UploadHandler(FileSystemEventHandler):
                     agendamento = temp_agendamento
                     caption = texto_part
                 except ValueError:
-                    print(f"⚠️ Data inválida ignorada (upload será imediato): {temp_agendamento}")
+                    logger.warning(f"Data inválida ignorada (upload será imediato): {temp_agendamento}")
 
             sucesso = arquivo.upload_arquivo_drive(event.src_path, agendamento, caption)
 
             nome_pasta = "Enviados" if sucesso else "Erros"
             pasta_destino = os.path.join(os.path.dirname(event.src_path), nome_pasta)
-            if not os.path.exists(pasta_destino):
-                os.makedirs(pasta_destino)
+            os.makedirs(pasta_destino, exist_ok=True)
 
             destino = os.path.join(pasta_destino, os.path.basename(event.src_path))
             shutil.move(event.src_path, destino)
-            print(f"Arquivo movido para: {destino}")
+            logger.info(f"Arquivo movido para: {destino}")
 
 
-def iniciar_monitoramento(pasta):
-    if not os.path.exists(pasta):
-        os.makedirs(pasta)
+def iniciar_monitoramento(pasta: str) -> None:
+    os.makedirs(pasta, exist_ok=True)
 
     observer = Observer()
     observer.schedule(UploadHandler(), pasta, recursive=False)
     observer.start()
-    print(f"Monitorando a pasta: {pasta}")
+    logger.info(f"Monitorando a pasta: {pasta}")
 
     try:
         while True:

@@ -1,3 +1,4 @@
+import logging
 import os
 from unittest.mock import MagicMock, mock_open, patch
 
@@ -14,8 +15,9 @@ def mock_env(monkeypatch):
     monkeypatch.setattr(arquivo, "WEBHOOK_URL", "http://test.url")
 
 
-def test_disparar_automacao_success(mock_env, capsys):
-    with patch("arquivo.requests.post") as mock_post, \
+def test_disparar_automacao_success(mock_env, caplog):
+    caplog.set_level(logging.INFO)
+    with patch("arquivo.get_session") as mock_session, \
             patch("arquivo.datetime") as mock_datetime:
         mock_now = MagicMock()
         mock_now.strftime.return_value = "2024-01-01"
@@ -23,76 +25,89 @@ def test_disparar_automacao_success(mock_env, capsys):
 
         mock_response = MagicMock()
         mock_response.status_code = 200
-        mock_post.return_value = mock_response
+        mock_post = MagicMock()
+        mock_post.post.return_value = mock_response
+        mock_session.return_value = mock_post
 
         arquivo.disparar_automacao("http://img.url", "Test")
 
-        mock_post.assert_called_once()
+        mock_post.post.assert_called_once()
 
-        args, kwargs = mock_post.call_args
+        args, kwargs = mock_post.post.call_args
         assert kwargs["json"]["caption"] == "Test - Gerado em: 2024-01-01"
         assert kwargs["timeout"] == 10
-        assert "✅ Status: 200" in capsys.readouterr().out
+        assert "Status: 200" in caplog.text
 
 
-def test_disparar_automacao_missing_env(monkeypatch, capsys):
+def test_disparar_automacao_missing_env(monkeypatch, caplog):
     monkeypatch.setattr(arquivo, "WEBHOOK_URL", None)
 
-    with patch("arquivo.requests.post") as mock_post:
+    with patch("arquivo.get_session") as mock_session:
         arquivo.disparar_automacao("http://img.url", "Test")
 
-        mock_post.assert_not_called()
-        assert "❌ Erro: A variável de ambiente" in capsys.readouterr().out
+        mock_session.assert_not_called()
+        assert "A variável de ambiente" in caplog.text
 
 
-def test_disparar_automacao_failure(mock_env, capsys):
-    with patch("arquivo.requests.post") as mock_post:
+def test_disparar_automacao_failure(mock_env, caplog):
+    with patch("arquivo.get_session") as mock_session:
         mock_response = MagicMock()
         mock_response.status_code = 500
         mock_response.text = "Server Error"
-        mock_post.return_value = mock_response
+        
+        mock_post = MagicMock()
+        mock_post.post.return_value = mock_response
+        mock_session.return_value = mock_post
 
         arquivo.disparar_automacao("http://img.url", "Test")
 
-        captured = capsys.readouterr().out
-        assert "⚠️ Status: 500" in captured
-        assert "Resposta: Server Error" in captured
+        assert "Status: 500" in caplog.text
+        assert "Resposta: Server Error" in caplog.text
 
 
-def test_disparar_automacao_exception(mock_env, capsys):
-    with patch("arquivo.requests.post") as mock_post:
-        mock_post.side_effect = requests.exceptions.RequestException("Connection Error")
+def test_disparar_automacao_exception(mock_env, caplog):
+    with patch("arquivo.get_session") as mock_session:
+        mock_post = MagicMock()
+        mock_post.post.side_effect = requests.exceptions.RequestException("Connection Error")
+        mock_session.return_value = mock_post
 
         arquivo.disparar_automacao("http://img.url", "Test")
 
-        assert "❌ Erro de conexão" in capsys.readouterr().out
+        assert "Erro de conexão" in caplog.text
 
 
-def test_upload_arquivo_drive_success(mock_env, capsys):
-    with patch("arquivo.requests.post") as mock_post, \
+def test_upload_arquivo_drive_success(mock_env, caplog):
+    caplog.set_level(logging.INFO)
+    with patch("arquivo.get_session") as mock_session, \
             patch("builtins.open", mock_open(read_data=b"dados")):
         mock_response = MagicMock()
         mock_response.status_code = 200
-        mock_post.return_value = mock_response
+        
+        mock_post = MagicMock()
+        mock_post.post.return_value = mock_response
+        mock_session.return_value = mock_post
 
         arquivo.upload_arquivo_drive("arquivo.txt")
 
-        mock_post.assert_called_once()
-        assert "files" in mock_post.call_args[1]
-        assert "✅ Upload concluído: 200" in capsys.readouterr().out
+        mock_post.post.assert_called_once()
+        assert "files" in mock_post.post.call_args[1]
+        assert "Upload concluído: 200" in caplog.text
 
 
-def test_upload_arquivo_drive_with_schedule(mock_env, capsys):
-    with patch("arquivo.requests.post") as mock_post, \
+def test_upload_arquivo_drive_with_schedule(mock_env, caplog):
+    with patch("arquivo.get_session") as mock_session, \
             patch("builtins.open", mock_open(read_data=b"dados")):
         mock_response = MagicMock()
         mock_response.status_code = 200
-        mock_post.return_value = mock_response
+        
+        mock_post = MagicMock()
+        mock_post.post.return_value = mock_response
+        mock_session.return_value = mock_post
 
         arquivo.upload_arquivo_drive("arquivo.txt", "2024-12-25 10:00", "Feliz Natal")
 
-        mock_post.assert_called_once()
-        kwargs = mock_post.call_args[1]
+        mock_post.post.assert_called_once()
+        kwargs = mock_post.post.call_args[1]
         assert kwargs["data"]["agendamento"] == "2024-12-25 10:00"
         assert kwargs["data"]["caption"] == "Feliz Natal"
 

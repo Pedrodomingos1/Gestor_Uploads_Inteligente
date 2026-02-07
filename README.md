@@ -4,6 +4,19 @@ Este projeto monitora uma pasta local em busca de novas imagens e vídeos (`.jpg
 
 O sistema suporta **agendamento de postagens** via nome do arquivo e organiza automaticamente os arquivos processados, movendo-os para uma pasta de "Enviados" em caso de sucesso ou "Erros" em caso de falha.
 
+## 🏗️ Arquitetura
+
+```mermaid
+graph TD
+    A[Pasta Monitorada] -->|Novo Arquivo| B(Script Python)
+    B -->|Extrai Metadados| B
+    B -->|POST Request| C{n8n Webhook}
+    C -->|Sucesso| D[Google Drive / Redes Sociais]
+    C -->|Erro| E[Log de Erro]
+    B -->|Move Arquivo| F[Pasta Enviados]
+    B -->|Falha no Upload| G[Pasta Erros]
+```
+
 ## 📋 Pré-requisitos
 
 *   Python 3.8 ou superior
