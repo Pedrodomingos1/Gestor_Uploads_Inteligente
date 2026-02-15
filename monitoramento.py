@@ -28,10 +28,10 @@ class UploadHandler(FileSystemEventHandler):
             if match:
                 data_part, hora_part, texto_part, _ = match.groups()
                 temp_agendamento = f"{data_part} {hora_part.replace('-', ':')}"
+                caption = texto_part
                 try:
                     datetime.strptime(temp_agendamento, "%Y-%m-%d %H:%M")
                     agendamento = temp_agendamento
-                    caption = texto_part
                 except ValueError:
                     logger.warning(f"Data inválida ignorada (upload será imediato): {temp_agendamento}")
 

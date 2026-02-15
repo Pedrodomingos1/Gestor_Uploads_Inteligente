@@ -152,3 +152,28 @@ def test_monitoramento_arquivo_comum(mock_env):
         handler.on_created(evento)
 
         assert "Erros" in mock_move.call_args[0][1]
+
+
+def test_caption_preservation_on_invalid_date(mock_env):
+    handler = monitoramento.UploadHandler()
+
+    with patch("monitoramento.arquivo.upload_arquivo_drive") as mock_upload, \
+            patch("monitoramento.shutil.move") as mock_move, \
+            patch("monitoramento.os.path.exists", return_value=True), \
+            patch("monitoramento.time.sleep"):
+
+        mock_upload.return_value = True
+
+        # Arquivo com data inválida (mês 13)
+        nome_arquivo = "2024-13-01_12-00_Minha Legenda.jpg"
+        caminho_completo = os.path.join("pasta_monitorada", nome_arquivo)
+        evento = FileCreatedEvent(caminho_completo)
+
+        handler.on_created(evento)
+
+        mock_upload.assert_called_once()
+        args, _ = mock_upload.call_args
+        # O agendamento deve ser None porque a data é inválida
+        assert args[1] is None
+        # A legenda DEVE ser preservada
+        assert args[2] == "Minha Legenda"
