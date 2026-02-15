@@ -43,18 +43,18 @@ O fluxo de dados é unidirecional, resiliente e transparente.
 ```mermaid
 graph TD
     subgraph Entrada
-    A[📂 Google Drive] -->|Novo Arquivo| B(⚡ n8n Trigger)
+    A["📂 Google Drive"] -->|Novo Arquivo| B("⚡ n8n Trigger")
     end
 
     subgraph Processamento
-    B -->|Baixa Vídeo| C{🐍 Python Validator}
-    C -->|Aprovado| D[📝 Google Sheets (Fila)]
-    C -->|Reprovado| E[❌ Telegram (Erro)]
+    B -->|Baixa Vídeo| C{"🐍 Python Validator"}
+    C -->|Aprovado| D["📝 Google Sheets (Fila)"]
+    C -->|Reprovado| E["❌ Telegram (Erro)"]
     end
 
     subgraph Saída
-    D -->|Agendador| F[🚀 Instagram API]
-    F -->|Sucesso| G[✅ Telegram (Confirmado)]
+    D -->|Agendador| F["🚀 Instagram API"]
+    F -->|Sucesso| G["✅ Telegram (Confirmado)"]
     end
 
     style A fill:#f9f,stroke:#333,stroke-width:2px
