@@ -89,3 +89,6 @@ Se você já tem muitos commits e quer manter o histórico detalhado, mas mudar 
 - [ ] PRs antigos de automação foram fechados sem merge (ou mergeados via squash)?
 
 **Lembrete:** Como Engenheiro de Software, a integridade do histórico do Git é sua responsabilidade. Use essas ferramentas com sabedoria.
+
+---
+*Última verificação de integridade realizada em: Fevereiro de 2025.*
