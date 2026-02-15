@@ -1,66 +1,118 @@
-# Gestor de Uploads Inteligentes
+# 🚀 Automação de Vídeo via Google Drive (Drive-to-Insta)
 
-Este projeto monitora uma pasta local em busca de novas imagens e vídeos (`.jpg`, `.png`, `.mp4`) e as envia automaticamente para um Webhook do n8n (para integração com Google Drive ou outros serviços).
+> **Transforme o Google Drive na sua ilha de edição e o Telegram no seu painel de controle.**
 
-O sistema suporta **agendamento de postagens** via nome do arquivo e organiza automaticamente os arquivos processados, movendo-os para uma pasta de "Enviados" em caso de sucesso ou "Erros" em caso de falha.
+Este projeto monitora pastas específicas do Google Drive, valida automaticamente vídeos para redes sociais (formato e tamanho), gerencia uma fila de agendamento inteligente via Google Sheets e notifica a equipe em tempo real pelo Telegram.
 
-## 🏗️ Arquitetura
+---
+
+## 🎯 A Dor do Cliente (Visão de Produto)
+
+Gerenciar conteúdo de vídeo para redes sociais é um pesadelo logístico que consome tempo e gera erros.
+*   **O Esquecimento:** Vídeos prontos ficam "mofando" no Drive porque alguém esqueceu de agendar.
+*   **O Erro Humano:** O vídeo sobe no formato errado (horizontal no Reels? 😱) ou com a legenda errada.
+*   **A Falta de Feedback:** O editor não sabe se o vídeo foi aprovado, e o cliente não sabe se foi postado.
+
+**A Solução:** Este sistema elimina o intermediário manual. O editor joga o vídeo no Drive, o sistema valida (Python), agenda (Sheets) e notifica (Telegram). Se estiver errado, o sistema avisa na hora.
+
+---
+
+## ⚡ Funcionalidades
+
+### ✅ **Drive-to-Insta (Novo!)**
+Monitoramento inteligente de pastas do Google Drive.
+*   **Upload Automático:** Basta arrastar o arquivo de vídeo para a pasta monitorada.
+*   **Validação de Formato:** Script Python verifica proporção (9:16) e tamanho (<50MB).
+*   **Compressão Inteligente:** Se o vídeo for muito pesado, ele é comprimido automaticamente antes de postar.
+
+### 🤖 **Curadoria via Telegram**
+Seu "Chefe de Redação" no bolso.
+*   **Notificação de Sucesso:** "Seu vídeo 'Dancinha_da_Empresa.mp4' foi validado e agendado!"
+*   **Alerta de Erro:** "O vídeo 'Horizontal_Errado.mov' foi rejeitado. Motivo: Proporção incorreta (16:9). Por favor, ajuste."
+
+### 📊 **Relatório de Sentimento (Legado)**
+Análise de engajamento pós-postagem.
+*   Coleta comentários e classifica como Positivo, Neutro ou Negativo usando IA.
+
+---
+
+## 🏗️ Arquitetura do Sistema
+
+O fluxo de dados é unidirecional, resiliente e transparente.
 
 ```mermaid
 graph TD
-    A[Pasta Monitorada] -->|Novo Arquivo| B(Script Python)
-    B -->|Extrai Metadados| B
-    B -->|POST Request| C{n8n Webhook}
-    C -->|Sucesso| D[Google Drive / Redes Sociais]
-    C -->|Erro| E[Log de Erro]
-    B -->|Move Arquivo| F[Pasta Enviados]
-    B -->|Falha no Upload| G[Pasta Erros]
-```
+    subgraph Entrada
+    A[📂 Google Drive] -->|Novo Arquivo| B(⚡ n8n Trigger)
+    end
+    
+    subgraph Processamento
+    B -->|Baixa Vídeo| C{🐍 Python Validator}
+    C -->|Aprovado| D[📝 Google Sheets (Fila)]
+    C -->|Reprovado| E[❌ Telegram (Erro)]
+    end
+    
+    subgraph Saída
+    D -->|Agendador| F[🚀 Instagram API]
+    F -->|Sucesso| G[✅ Telegram (Confirmado)]
+    end
 
-## 📋 Pré-requisitos
+    style A fill:#f9f,stroke:#333,stroke-width:2px
+    style C fill:#ccf,stroke:#333,stroke-width:2px
+    style D fill:#cfc,stroke:#333,stroke-width:2px
+    style F fill:#fcf,stroke:#333,stroke-width:2px
+🛠️ Guia de Uso Pragmático
+Passo 1: O Upload (Editor de Vídeo)
+O editor finaliza o vídeo e nomeia o arquivo como ele quer que a legenda apareça (ou usa um padrão de data).
 
-*   Python 3.8 ou superior
-*   Gerenciador de pacotes `pip`
+Exemplo: Ele arrasta o arquivo Promocao_Relampago_2023.mp4 para a pasta _INPUT_INSTAGRAM no Google Drive.
 
-## 🚀 Instalação
+Passo 2: O Processamento (Sistema)
+O n8n detecta o arquivo em até 1 minuto.
 
-1.  Clone este repositório ou baixe os arquivos.
-2.  Instale as dependências necessárias executando o comando abaixo no terminal:
+Baixa o vídeo temporariamente.
+Roda o script validator.py.
+O vídeo está ok (Vertical e <50MB)?
+SIM: Salva na planilha "Fila de Postagens" com status AGUARDANDO.
+NÃO: Para o processo e envia alerta.
+Passo 3: A Confirmação (Cliente/Social Media)
+No grupo do Telegram da equipe, o Bot envia:
 
-```bash
-pip install requests python-dotenv watchdog pytest
-```
+🤖 Bot de Automação: "✅ Vídeo Promocao_Relampago_2023 processado com sucesso! 📅 Agendado para a próxima janela livre. 📂 [Link para a Planilha de Controle]"
 
-## ⚙️ Configuração
+💾 Estrutura de Dados (Google Sheets)
+A planilha serve como nosso "Banco de Dados de Fila". O n8n escreve, o Cron lê.
 
-1.  Crie um arquivo chamado `.env` na raiz do projeto.
-2.  Adicione a URL do seu Webhook do n8n neste arquivo:
+ID (Drive)	Nome do Arquivo	Link (Drive)	Status	Data Processamento	Log de Erro
+1AbCdEfGhIjK...	Reels_Viral.mp4	drive.google.com/...	PENDENTE	2023-10-27 10:00	-
+2XyZ123456...	Video_Ruim.mov	drive.google.com/...	ERRO_FORMATO	2023-10-27 10:05	Proporção 16:9 inválida.
+Exemplo de JSON (Payload do Webhook)
+Quando o Python valida o vídeo, ele retorna este objeto JSON para o n8n:
 
-```env
-N8N_WEBHOOK_URL=https://seu-n8n.com/webhook/caminho-do-webhook
-```
-
-## 🖥️ Como Usar (Monitoramento)
-
-Para iniciar o monitoramento da pasta, execute o script `monitoramento.py`:
-
-```bash
-python monitoramento.py
-```
-
-*   O script criará automaticamente uma pasta chamada `pasta_monitorada` (se ela não existir).
-*   **Arraste imagens** para dentro dessa pasta.
-*   O upload será feito automaticamente.
-*   Após o processamento, o arquivo será movido para `pasta_monitorada/Enviados` ou `pasta_monitorada/Erros`.
-
-Para parar o monitoramento, pressione `Ctrl + C` no terminal.
-
-## 🧪 Executando Testes
-
-Este projeto utiliza `pytest` para garantir que a lógica de envio e tratamento de erros esteja funcionando corretamente. Para rodar os testes:
-
-```bash
-pytest test_teste.py -v
-```
-
-O parâmetro `-v` exibe os detalhes de cada teste executado.
+{
+  "status": "sucesso",
+  "data": {
+    "filename": "Reels_Viral.mp4",
+    "size_mb": 15.4,
+    "duration_sec": 45,
+    "aspect_ratio": 0.5625, // 9:16
+    "is_valid": true
+  },
+  "message": "Vídeo aprovado para postagem."
+}
+📋 Pré-requisitos
+Python 3.8 ou superior
+Conta no Google Cloud Platform (para Drive e Sheets API)
+Conta no Telegram (para criar Bot)
+Instância do n8n (Self-hosted ou Cloud)
+🚀 Instalação (Dev Setup)
+Clone este repositório.
+Instale as dependências do validador:
+pip install moviepy requests python-dotenv
+Configure as variáveis de ambiente no .env:
+GOOGLE_DRIVE_FOLDER_ID=seu_folder_id
+TELEGRAM_BOT_TOKEN=seu_bot_token
+TELEGRAM_CHAT_ID=seu_chat_id
+Importe o Workflow do n8n (workflow.json).
+Execute o validador para testes locais:
+python validator.py
