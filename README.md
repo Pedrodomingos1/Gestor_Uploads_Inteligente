@@ -120,4 +120,12 @@ O controle de estado é mantido em uma planilha Google Sheets com a seguinte est
 
 ---
 
+## 👨‍💻 Autoria e Manutenção
+
+Este projeto foi desenvolvido e é mantido por **[Seu Nome Aqui]**, Engenheiro de Software focado em soluções de automação e produtividade.
+
+Para dúvidas técnicas ou oportunidades de colaboração, entre em contato via [LinkedIn/Email].
+
+---
+
 **Nota:** Este projeto é uma ferramenta de produtividade e deve ser configurado de acordo com as políticas de uso das plataformas integradas (Instagram/Facebook, Telegram).
